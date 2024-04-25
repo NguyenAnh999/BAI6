@@ -166,13 +166,69 @@ delimiter ;
 delimiter //
 create procedure getBookingByCustomerId(customer_id_in int)
 begin
-select  b.Id, BookingDate,if( bStatus=1,'đã duyêt',(if(BStatus=0,'chưa duyệt',if(BStatus=2,'đã thanh toán','dã hủy')))) 'status',sum(db.price) TotalAmount
-from bookingdetail db
-join Booking B on B.id = db.bookingID
-join Customer C on C.id = B.customerId
-where b.customerId=customer_id_in
-group by db.bookingID ;
-    end //
+    select b.Id,
+           c.id,
+           BookingDate,
+           if(bStatus = 1, 'đã duyêt',
+              (if(BStatus = 0, 'chưa duyệt', if(BStatus = 2, 'đã thanh toán', 'dã hủy')))) 'status',
+           sum(db.price)                                                                   TotalAmount
+    from bookingdetail db
+             join Booking B on B.id = db.bookingID
+             join Customer C on C.id = B.customerId
+    where c.id = customer_id_in
+    group by db.bookingID;
+end //
 delimiter ;
+
+call getBookingByCustomerId(1);
 # Thủ tục getRoomPaginate lấy ra danh sách phòng có phân trang gồm:
 # Id, Name, Price, SalePrice, Khi gọi thủ tuc truyền vào limit và page
+delimiter //
+create procedure getRoomPaginate(page int)
+begin
+    select Id, Name, Price, SalePrice
+    from Room
+    limit page,5;
+end //
+delimiter ;
+call getRoomPaginate(0);
+# Tạo trigger tr_Check_Price_Value sao cho khi thêm hoặc sửa phòng Room nếu nếu giá trị của cột
+# Price > 5000000 thì tự động chuyển về 5000000 và in ra thông báo ‘Giá phòng lớn nhất 5 triệu’
+delimiter //
+create trigger tr_Check_Price_Value
+    before insert
+    on Room
+    for each row
+begin
+    if new.price > 5000000 then set new.price = 5000000; end if;
+end //
+
+delimiter //
+delimiter //
+create trigger tr_Check_Price_Value_update
+    before update
+    on Room
+    for each row
+begin
+    if new.price > 5000000 then set new.price = 5000000; end if;
+end //
+
+delimiter //
+
+
+# Tạo trigger tr_check_Room_NotAllow khi thực hiện đặt pòng, nếu ngày đến
+# (StartDate) và ngày đi (EndDate) của đơn hiện tại mà phòng đã có người đặt rồi thì báo lỗi
+# “Phòng này đã có người đặt trong thời gian này, vui lòng chọn thời gian khác”
+delimiter //
+create trigger tr_check_Room_NotAllow
+    before insert
+    on Room
+    for each row
+begin
+
+
+
+
+end //
+
+delimiter //
