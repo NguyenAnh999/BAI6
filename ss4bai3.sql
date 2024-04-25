@@ -219,16 +219,29 @@ delimiter //
 # Tạo trigger tr_check_Room_NotAllow khi thực hiện đặt pòng, nếu ngày đến
 # (StartDate) và ngày đi (EndDate) của đơn hiện tại mà phòng đã có người đặt rồi thì báo lỗi
 # “Phòng này đã có người đặt trong thời gian này, vui lòng chọn thời gian khác”
+
+drop trigger tr_check_Room_NotAllow;
 delimiter //
 create trigger tr_check_Room_NotAllow
     before insert
-    on Room
+    on bookingdetail
     for each row
 begin
-
-
-
-
+    if (NEW.starDate >= any (select bd.starDate
+                         from bookingdetail bd
+                         where new.roomID = bd.roomID)
+        and NEW.starDate <= any (select bd.endDate
+                             from bookingdetail bd
+                             where new.roomID = bd.roomID))
+        or (NEW.endDate >= any (select bd.starDate
+                            from bookingdetail bd
+                            where new.roomID = bd.roomID)
+            and NEW.endDate <= any (select bd.endDate
+                                from bookingdetail bd
+                                where new.roomID = bd.roomID))
+    then
+        signal sqlstate '45000' set message_text =
+                'Phòng này đã có người đặt trong thời gian này, vui lòng chọn thời gian khác';
+    end if;
 end //
-
 delimiter //
